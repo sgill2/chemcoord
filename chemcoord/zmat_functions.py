@@ -191,7 +191,7 @@ The only allowed difference is ['bond', 'angle', 'dihedral']")
         if not inplace:
             return output
 
-    def to_xyz(self, SN_NeRF=False):
+    def to_xyz(self, SN_NeRF=False, starting_coord=None):
         """Transforms to cartesian space.
 
         Args:
@@ -235,37 +235,53 @@ The only allowed difference is ['bond', 'angle', 'dihedral']")
         def add_first_atom():
             index = buildlist[0, 0]
             # Change of nonlocal variables
-            molecule[index, :] = [self[index, 'atom'], 0., 0., 0.]
+            if starting_coord is None:
+                molecule[index, :] = [self[index, 'atom'], 0., 0., 0.]
+            else:
+                print('HHHHHHHHHHHHHHHHH', starting_coord[0,0])
+                molecule[index, :] = [self[index, 'atom'],
+                        starting_coord[0,0], starting_coord[0,1], starting_coord[0,2]]
 
         def add_second_atom():
             index = buildlist[1, 0]
             atom, bond = self[index, ['atom', 'bond']]
             # Change of nonlocal variables
-            molecule[index, :] = [atom, bond, 0., 0.]
+            if starting_coord is None:
+                molecule[index, :] = [atom, bond, 0., 0.]
+            else:
+                molecule[index, :] = [atom,
+                        starting_coord[1,0], starting_coord[1,1], starting_coord[1,2]]
+
+
 
         def add_third_atom():
             index, bond_with, angle_with = buildlist[2, :3]
             atom, bond, angle = self[index, ['atom', 'bond', 'angle']]
             angle = m.radians(angle)
+            if starting_coord is None:
+                # vb is the vector of the atom bonding to,
+                # va is the vector of the angle defining atom,
+                vb, va = molecule.location([bond_with, angle_with])
 
-            # vb is the vector of the atom bonding to,
-            # va is the vector of the angle defining atom,
-            vb, va = molecule.location([bond_with, angle_with])
+                # Vector pointing from vb to va
+                BA = va - vb
 
-            # Vector pointing from vb to va
-            BA = va - vb
+                # Vector of length distance
+                d = bond * normalize(BA)
 
-            # Vector of length distance
-            d = bond * normalize(BA)
+                # Rotate d by the angle around the z-axis
+                d = np.dot(rotation_matrix([0, 0, 1], angle), d)
 
-            # Rotate d by the angle around the z-axis
-            d = np.dot(rotation_matrix([0, 0, 1], angle), d)
+                # Add d to the position of q to get the new coordinates of the atom
+                p = vb + d
 
-            # Add d to the position of q to get the new coordinates of the atom
-            p = vb + d
+                # Change of nonlocal variables
+                molecule[index, :] = [atom] + list(p)
+            else:
+                molecule[index, :] = [atom,
+                        starting_coord[2,0], starting_coord[2,1], starting_coord[2,2]]
 
-            # Change of nonlocal variables
-            molecule[index, :] = [atom] + list(p)
+
 
         def add_atom(row):
             index, bond_with, angle_with, dihedral_with = buildlist[row, :]
@@ -307,6 +323,93 @@ The only allowed difference is ['bond', 'angle', 'dihedral']")
 
                 # Change of nonlocal variables
                 molecule[index, :] = [atom] + list(p)
+
+        def add_atom_SN_NeRF(row):
+            normalize = utilities.normalize
+
+            # TODO python2 compatibility
+#            raise NotImplementedError(
+#                "This functionality has not been implemented yet!")
+#            index = None  # Should be added
+
+            index, bond_with, angle_with, dihedral_with = buildlist[row, :]
+            atom, bond, angle, dihedral = self[
+                index, ['atom', 'bond', 'angle', 'dihedral']]
+            angle, dihedral = map(m.radians, (angle, dihedral))
+            bond_with, angle_with, dihedral_with = buildlist[row, 1:]
+
+            vb, va, vd = molecule.location([bond_with, angle_with, dihedral_with])
+
+            # The next steps implements the so called SN-NeRF algorithm.
+            # In their paper they use a different definition of the angle.
+            # This means, that I use sometimes cos instead of sin and other
+            # minor changes
+            # Compare with the paper:
+            # Parsons J, Holmes JB, Rojas JM, Tsai J, Strauss CE.:
+            # Practical conversion from torsion space to Cartesian space for
+            # in silico protein synthesis.
+            # J Comput Chem.  2005 Jul 30;26(10):1063-8.
+            # PubMed PMID: 15898109
+
+            # Theoretically it uses 30 % less floating point operations.
+            # Since the python overhead is the limiting step, you won't see
+            # any difference. But it is more elegant ;).
+
+            if np.isclose(m.degrees(angle), 180.):
+                AB = vb - va
+                ab = normalize(AB)
+                d = bond * ab
+
+                p = vb + d
+                molecule[index, :] = [atom] + list(p)
+
+            else:
+                D2 = bond * np.array([
+                    - np.cos(angle),
+                    np.cos(dihedral) * np.sin(angle),
+                    np.sin(dihedral) * np.sin(angle)
+                ], dtype=float)
+
+                ab = normalize(vb - va)
+                da = (va - vd)
+                n = normalize(np.cross(da, ab))
+
+                M = np.array([
+                    ab,
+                    np.cross(n, ab),
+                    n])
+                D = np.dot(np.transpose(M), D2) + vb
+
+                molecule[index, :] = [atom] + list(D)
+        if self.n_atoms == 1:
+            add_first_atom()
+
+        elif self.n_atoms == 2:
+            add_first_atom()
+            add_second_atom()
+
+        elif self.n_atoms == 3:
+            add_first_atom()
+            add_second_atom()
+            add_third_atom()
+
+        elif self.n_atoms > 3:
+            add_first_atom()
+            add_second_atom()
+            add_third_atom()
+            if SN_NeRF:
+                for row in range(3, self.n_atoms):
+                    add_atom_SN_NeRF(row)
+            else:
+                for row in range(3, self.n_atoms):
+                    add_atom(row)
+
+        assert not molecule.frame.isnull().values.any(), \
+            ('Serious bug while converting, please report an error'
+                'on the Github page with your coordinate files')
+
+        molecule.metadata = self.metadata
+        return molecule
 
         def add_atom_SN_NeRF(row):
             normalize = utilities.normalize
