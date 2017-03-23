@@ -238,7 +238,6 @@ The only allowed difference is ['bond', 'angle', 'dihedral']")
             if starting_coord is None:
                 molecule[index, :] = [self[index, 'atom'], 0., 0., 0.]
             else:
-                print('HHHHHHHHHHHHHHHHH', starting_coord[0,0])
                 molecule[index, :] = [self[index, 'atom'],
                         starting_coord[0,0], starting_coord[0,1], starting_coord[0,2]]
 
@@ -251,8 +250,6 @@ The only allowed difference is ['bond', 'angle', 'dihedral']")
             else:
                 molecule[index, :] = [atom,
                         starting_coord[1,0], starting_coord[1,1], starting_coord[1,2]]
-
-
 
         def add_third_atom():
             index, bond_with, angle_with = buildlist[2, :3]
@@ -280,8 +277,6 @@ The only allowed difference is ['bond', 'angle', 'dihedral']")
             else:
                 molecule[index, :] = [atom,
                         starting_coord[2,0], starting_coord[2,1], starting_coord[2,2]]
-
-
 
         def add_atom(row):
             index, bond_with, angle_with, dihedral_with = buildlist[row, :]
