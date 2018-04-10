@@ -321,37 +321,6 @@ class CartesianIO(CartesianCore, GenericIO):
 
         Thread(target=open_file, args=(i,)).start()
 
-    def get_pymatgen_molecule(self):
-        """Create a Molecule instance of the pymatgen library
-
-        .. warning:: The `pymatgen library <http://pymatgen.org>`_ is imported
-            locally in this function and will raise
-            an ``ImportError`` exception, if it is not installed.
-
-        Args:
-            None
-
-        Returns:
-            :class:`pymatgen.core.structure.Molecule`:
-        """
-        from pymatgen import Molecule
-        return Molecule(self['atom'].values,
-                        self.loc[:, ['x', 'y', 'z']].values)
-
-    @classmethod
-    def from_pymatgen_molecule(cls, molecule):
-        """Create an instance of the own class from a pymatgen molecule
-
-        Args:
-            molecule (:class:`pymatgen.core.structure.Molecule`):
-
-        Returns:
-            Cartesian:
-        """
-        new = cls(atoms=[el.value for el in molecule.species],
-                  coords=molecule.cart_coords)
-        return new._to_numeric()
-
     def get_ase_atoms(self):
         """Create an Atoms instance of the ase library
 

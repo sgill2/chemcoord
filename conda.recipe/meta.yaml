@@ -16,7 +16,6 @@ requirements:
     - sortedcontainers
     - sympy
     - six
-    - pymatgen
 
   run:
     - python
@@ -27,7 +26,6 @@ requirements:
     - sortedcontainers
     - sympy
     - six
-    - pymatgen
 
 about:
   home: http://chemcoord.readthedocs.io/
