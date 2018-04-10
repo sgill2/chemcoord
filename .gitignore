@@ -1,10 +1,12 @@
 # compiled python code
 *.py[cod]
+*.nb[ic]
 
 # C extensions
 *.so
 
 # Packages
+.eggs/
 *.egg
 *.egg-info
 dist
@@ -24,6 +26,7 @@ pip-log.txt
 
 # Unit test / coverage reports
 .coverage
+coverage.xml
 .tox
 nosetests.xml
 
@@ -47,10 +50,19 @@ nohup.out
 # Pdfs
 *pdf
 
+# Tex auxiliary files
+*aux
+*fdb_latexmk
+*fls
+*log
+*gz
+
 # ignore molecule files from the Tutorial
-*molden
-*xyz
 .ipynb_checkpoints
 
 
 cealign-0.8-RBS
+
+#pytest
+*.chache/*
+.cache/

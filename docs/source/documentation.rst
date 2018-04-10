@@ -6,10 +6,9 @@ Documentation
 Contents:
 
 .. toctree::
-    :maxdepth: 1
+    :maxdepth: 2
 
-    xyz_functions
-    utilities
-    zmat_functions
-    vibration
+    cartesian_coordinates
+    internal_coordinates
     configuration
+    exceptions

@@ -1,3 +1,8 @@
 numpy
-pandas
-chemcoord
+pandas>=0.20
+numba>=0.30
+sortedcontainers
+sympy
+six
+pymatgen
+scipy>=1.0
